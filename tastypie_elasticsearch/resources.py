@@ -4,6 +4,8 @@ tastypie.Resource definitions for ElasticSearch
 
 """
 
+import json
+
 from tastypie.bundle import Bundle
 from tastypie.resources import Resource
 from tastypie.exceptions import ImmediateHttpResponse
@@ -18,7 +20,6 @@ class ElasticSearch(Resource):
     """
     
     id = fields.CharField(attribute='get_id')
-    # meta = fields.DictField(attribute='get_meta')
     items = fields.DictField(attribute='items')
     
     _es = None
@@ -62,6 +63,10 @@ class ElasticSearch(Resource):
         
         size = (limit + offset) - (1 if offset else 0)
         start = offset + (1 if offset>=limit else 0)
+
+        query = query.search()
+        for facet in getattr(self._meta, 'term_facets', []):
+            query.facet.add_term_facet(facet)
         
         # refresh the index before query
         self.es.refresh(self._meta.indices[0])
@@ -73,11 +78,19 @@ class ElasticSearch(Resource):
             size=size,
             start=start
             )
+        self.query_facets = results.facets
         return results
     
     def obj_get_list(self, request=None, **kwargs):
         # Filtering disabled for brevity...
         return self.get_object_list(request)
+    
+    def get_list(self, request=None, **kwargs):
+        resp = super(ElasticSearch, self).get_list(request, **kwargs)
+        data = json.loads(resp.content)
+        data['meta']['facets'] = self.query_facets
+        return self.create_response(request, data)
+
     
     def obj_get(self, request=None, **kwargs):
         pk = kwargs.get('pk')
