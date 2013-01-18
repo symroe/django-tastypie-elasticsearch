@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """
 tastypie.Resource definitions for ElasticSearch
-
 """
 
 import json
@@ -63,7 +62,7 @@ class ElasticSearch(Resource):
         
         size = (limit + offset) - (1 if offset else 0)
         start = offset + (1 if offset>=limit else 0)
-
+        
         query = query.search()
         for facet in getattr(self._meta, 'term_facets', []):
             query.facet.add_term_facet(facet)
@@ -90,7 +89,7 @@ class ElasticSearch(Resource):
         data = json.loads(resp.content)
         data['meta']['facets'] = self.query_facets
         return self.create_response(request, data)
-
+    
     
     def obj_get(self, request=None, **kwargs):
         pk = kwargs.get('pk')
