@@ -48,13 +48,18 @@ class ElasticSearch(Resource):
         return obj.get('get_absolute_url')
     
     
-    def get_object_list(self, request):
+    def get_object_list(self, request, qs=None):
+        if qs:
+            query = request.GET.copy()
+            query.update(qs)
+            request.GET = query
+        
         offset = long(request.GET.get("offset", 0))
         limit = long(request.GET.get("limit", self._meta.limit))
         
         q = request.GET.get("q", "")
         doc_types = request.GET.get("doc_types", "").split(',')
-        
+
         if q:
             query = pyes.StringQuery(q)
         else:
@@ -82,7 +87,7 @@ class ElasticSearch(Resource):
     
     def obj_get_list(self, request=None, **kwargs):
         # Filtering disabled for brevity...
-        return self.get_object_list(request)
+        return self.get_object_list(request, **kwargs)
     
     def get_list(self, request=None, **kwargs):
         resp = super(ElasticSearch, self).get_list(request, **kwargs)
