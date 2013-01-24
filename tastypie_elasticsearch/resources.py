@@ -54,15 +54,12 @@ class ElasticSearch(Resource):
     def add_filters(self, query, request):
         return query
 
-    def get_object_list(self, request, qs=None):
+    def get_object_list(self, request, qs=None, count=False):
         if qs:
             query = request.GET.copy()
             query.update(qs)
             request.GET = query
-        
-        offset = long(request.GET.get("offset", 0))
-        limit = long(request.GET.get("limit", self._meta.limit))
-        
+                
         q = request.GET.get("q", "")
         doc_types = request.GET.get("doc_types", "").split(',')
 
@@ -70,26 +67,39 @@ class ElasticSearch(Resource):
             query = pyes.StringQuery(q)
         else:
             query = pyes.MatchAllQuery()
-        
-        size = (limit + offset) - (1 if offset else 0)
-        start = offset + (1 if offset>=limit else 0)
 
         query = self.add_filters(query, request)
-
-        query = query.search()
-        self.add_facets(query, request)
-
-        # refresh the index before query
-        self.es.refresh(self._meta.indices[0])
         
-        results = self.es.search(
-            query=query,
-            doc_types=doc_types,
-            indices=self._meta.indices,
-            size=size,
-            start=start
+        if not count:
+            offset = long(request.GET.get("offset", 0))
+            limit = long(request.GET.get("limit", self._meta.limit))
+
+            size = (limit + offset) - (1 if offset else 0)
+            start = offset + (1 if offset>=limit else 0)
+            
+            query = query.search()
+            self.add_facets(query, request)
+
+            # refresh the index before query
+            self.es.refresh(self._meta.indices[0])
+
+            results = self.es.search(
+                query=query,
+                doc_types=doc_types,
+                indices=self._meta.indices,
+                size=size,
+                start=start
             )
-        self.query_facets = results.facets
+            self.query_facets = results.facets
+        else:
+            # refresh the index before query
+            self.es.refresh(self._meta.indices[0])
+
+            results = self.es.count(
+                query=query,
+                doc_types=doc_types,
+                indices=self._meta.indices
+            )
         return results
     
     def obj_get_list(self, request=None, **kwargs):
