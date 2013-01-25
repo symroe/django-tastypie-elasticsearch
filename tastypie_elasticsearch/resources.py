@@ -47,14 +47,16 @@ class ElasticSearch(Resource):
             isinstance(bundle_or_obj, Bundle) else bundle_or_obj)
         return obj.get('get_absolute_url')
     
-    def add_facets(self, query, request):
+    def build_facets(self, request):
+        facets = []
         for facet in getattr(self._meta, 'term_facets', []):
-            query.facet.add_term_facet(facet)
+            facets.append(pyes.facets.TermFacet(facet))
+        return facets
     
     def add_filters(self, query, request):
         return query
 
-    def get_object_list(self, request, qs=None, count=False):
+    def get_object_list(self, request, qs=None, count=False, facets=[]):
         if qs:
             query = request.GET.copy()
             query.update(qs)
@@ -78,7 +80,9 @@ class ElasticSearch(Resource):
             start = offset + (1 if offset>=limit else 0)
             
             query = query.search()
-            self.add_facets(query, request)
+
+            if facets:
+                query.facet.facets += facets
 
             # refresh the index before query
             self.es.refresh(self._meta.indices[0])
@@ -90,6 +94,8 @@ class ElasticSearch(Resource):
                 size=size,
                 start=start
             )
+
+
             self.query_facets = results.facets
         else:
             # refresh the index before query
