@@ -13,6 +13,7 @@ from tastypie import fields
 
 import pyes
 
+
 class ElasticSearch(Resource):
     """
     ElasticSearch Resource
@@ -76,9 +77,6 @@ class ElasticSearch(Resource):
             offset = long(request.GET.get("offset", 0))
             limit = long(request.GET.get("limit", self._meta.limit))
 
-            size = (limit + offset) - (1 if offset else 0)
-            start = offset + (1 if offset>=limit else 0)
-            
             query = query.search()
 
             if facets:
@@ -91,8 +89,8 @@ class ElasticSearch(Resource):
                 query=query,
                 doc_types=doc_types,
                 indices=self._meta.indices,
-                size=size,
-                start=start
+                size=limit,
+                start=offset
             )
 
 
