@@ -57,7 +57,7 @@ class ElasticSearch(Resource):
     def add_filters(self, query, request):
         return query
 
-    def get_object_list(self, request, qs=None, count=False, facets=[]):
+    def get_object_list(self, request, qs=None, count=False, facets=[], filters=None):
         if qs:
             query = request.GET.copy()
             query.update(qs)
@@ -71,14 +71,17 @@ class ElasticSearch(Resource):
         else:
             query = pyes.MatchAllQuery()
 
-        query = self.add_filters(query, request)
-        
+        # applying filters
+        if filters:
+            query = pyes.FilteredQuery(query, filters)
+
         if not count:
             offset = long(request.GET.get("offset", 0))
             limit = long(request.GET.get("limit", self._meta.limit))
 
             query = query.search()
 
+            # applying facets
             if facets:
                 query.facet.facets += facets
 
