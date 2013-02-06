@@ -31,7 +31,7 @@ if __name__ == '__main__':
         zip_safe = True,
         install_requires = (
             'Django>=1.4',
-            'django-tastypie>=0.9.11',
+            'django-tastypie',
             'pyes>=0.19.1',
         ),
         test_suite = 'tests.runtests.runtests',
